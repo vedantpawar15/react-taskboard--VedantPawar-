@@ -1,34 +1,68 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import TaskBoardHeader from '../components/TaskBoardHeader';
+import TaskForm from '../components/TaskForm';
+import TaskList from '../components/TaskList';
+
+// Temporary mock data for Phase 2 UI development
+const INITIAL_SAMPLE_TASKS = [
+  { id: 1, title: 'Set up Vite + React project foundation', completed: true },
+  { id: 2, title: 'Configure React Router dynamic routes', completed: true },
+  { id: 3, title: 'Build reusable component architecture', completed: false },
+  { id: 4, title: 'Fetch seed tasks from JSONPlaceholder API', completed: false },
+  { id: 5, title: 'Persist task state using localStorage', completed: false },
+];
 
 /**
- * TaskBoardPage Component
- * Route: /
- * Displays the main task board container (Placeholder for Phase 1).
+ * TaskBoardPage Component (Route: /)
+ * Parent page managing temporary mock state, calculating stats, and composing child components.
  */
 function TaskBoardPage() {
+  const [tasks, setTasks] = useState(INITIAL_SAMPLE_TASKS);
+
+  // Derived metrics from tasks state
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.completed).length;
+  const pendingTasks = totalTasks - completedTasks;
+
+  // Local state update handlers for Phase 2 UI demonstration
+  const handleAddTask = (title) => {
+    const newTask = {
+      id: Date.now(),
+      title,
+      completed: false,
+    };
+    setTasks([newTask, ...tasks]);
+  };
+
+  const handleToggleTask = (id) => {
+    setTasks(
+      tasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const handleDeleteTask = (id) => {
+    setTasks(tasks.filter((task) => task.id !== id));
+  };
+
   return (
-    <div className="page-card">
-      <h1 className="page-title">Task Board</h1>
-      <p className="page-subtitle">
-        Phase 1 Foundation: Basic routing and layout established.
-      </p>
+    <div className="task-board-container">
+      <TaskBoardHeader
+        totalTasks={totalTasks}
+        completedTasks={completedTasks}
+        pendingTasks={pendingTasks}
+      />
 
-      <div className="placeholder-box">
-        <span className="badge">Phase 1</span>
-        <h3 style={{ marginTop: '0.75rem', color: 'var(--text-main)' }}>Task List View Placeholder</h3>
-        <p style={{ marginTop: '0.5rem' }}>
-          Full task list, filtering, and add/edit actions will be connected in future phases.
-        </p>
+      <TaskForm onAddTask={handleAddTask} />
 
-        <div className="test-routes">
-          <h4>Test Dynamic Detail Routes:</h4>
-          <div className="test-links">
-            <Link to="/tasks/1">View Task #1 Details</Link>
-            <Link to="/tasks/42">View Task #42 Details</Link>
-            <Link to="/tasks/100">View Task #100 Details</Link>
-          </div>
-        </div>
+      <div className="board-section">
+        <h2 className="section-title">All Tasks</h2>
+        <TaskList
+          tasks={tasks}
+          onToggleTask={handleToggleTask}
+          onDeleteTask={handleDeleteTask}
+        />
       </div>
     </div>
   );
