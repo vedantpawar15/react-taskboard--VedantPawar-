@@ -3,15 +3,15 @@ import TaskCard from './TaskCard';
 
 /**
  * TaskList Component
- * Renders a list of TaskCard components dynamically using Array.prototype.map().
- * Displays an empty state when no tasks are present.
+ * Renders list of TaskCards dynamically or empty state fallback.
  * 
  * @param {Object} props
- * @param {Array} props.tasks - List of task objects
- * @param {Function} [props.onToggleTask] - Toggle callback passed to cards
- * @param {Function} [props.onDeleteTask] - Delete callback passed to cards
+ * @param {Array} props.tasks - List of tasks
+ * @param {Function} [props.onToggleTask] - Toggle callback
+ * @param {Function} [props.onEditTask] - Edit callback
+ * @param {Function} [props.onDeleteTask] - Delete callback
  */
-function TaskList({ tasks, onToggleTask, onDeleteTask }) {
+function TaskList({ tasks, onToggleTask, onEditTask, onDeleteTask }) {
   if (!tasks || tasks.length === 0) {
     return (
       <div className="empty-state">
@@ -29,6 +29,7 @@ function TaskList({ tasks, onToggleTask, onDeleteTask }) {
           key={task.id}
           task={task}
           onToggleComplete={onToggleTask}
+          onEdit={onEditTask}
           onDelete={onDeleteTask}
         />
       ))}

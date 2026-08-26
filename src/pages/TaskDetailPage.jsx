@@ -2,35 +2,86 @@ import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 
 /**
- * TaskDetailPage Component
- * Route: /tasks/:id
- * Displays detailed information for a specific task based on dynamic route param.
+ * TaskDetailPage Component (Route: /tasks/:id)
+ * Dynamically retrieves dynamic route param `id`, finds matching task from shared `tasks` state,
+ * and displays comprehensive task details or a friendly "Task Not Found" fallback.
+ * 
+ * @param {Object} props
+ * @param {Array} props.tasks - Shared tasks array from parent App
+ * @param {Function} [props.onToggleTask] - Optional toggle handler
  */
-function TaskDetailPage() {
+function TaskDetailPage({ tasks, onToggleTask }) {
   const { id } = useParams();
 
+  // Find task matching the route parameter
+  const task = tasks.find((t) => String(t.id) === String(id));
+
+  // Friendly fallback if task ID is invalid or deleted
+  if (!task) {
+    return (
+      <div className="page-card not-found-card">
+        <div className="not-found-icon">⚠️</div>
+        <h1 className="page-title">Task Not Found</h1>
+        <p className="page-subtitle">
+          No task matching ID <strong style={{ color: 'var(--primary)' }}>#{id}</strong> exists in your board.
+        </p>
+        <div style={{ marginTop: '1.5rem' }}>
+          <Link to="/" className="btn btn-primary">
+            ← Return to Task Board
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="page-card">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Task Details</h1>
-        <Link to="/" style={{ fontSize: '0.9rem', fontWeight: 500 }}>
+    <div className="page-card task-detail-card">
+      <div className="detail-header">
+        <div>
+          <span className="badge">Task #{task.id}</span>
+          <h1 className="page-title" style={{ marginTop: '0.5rem' }}>{task.title}</h1>
+        </div>
+        <Link to="/" className="btn-link">
           ← Back to Board
         </Link>
       </div>
 
-      <p className="page-subtitle">
-        Viewing details for task parameter: <strong style={{ color: 'var(--primary)' }}>ID #{id}</strong>
-      </p>
+      <div className="detail-body">
+        <div className="detail-row">
+          <span className="detail-label">Status:</span>
+          <div className="detail-value">
+            <span className={`status-badge ${task.completed ? 'badge-success' : 'badge-warning'}`}>
+              {task.completed ? '✓ Completed' : '⏳ Pending'}
+            </span>
+            {onToggleTask && (
+              <button
+                className="btn btn-sm btn-secondary"
+                style={{ marginLeft: '0.75rem', padding: '0.25rem 0.6rem', fontSize: '0.8rem' }}
+                onClick={() => onToggleTask(task.id)}
+              >
+                Toggle Status
+              </button>
+            )}
+          </div>
+        </div>
 
-      <div className="placeholder-box">
-        <span className="badge">Dynamic Route Verified</span>
-        <h3 style={{ marginTop: '0.75rem', color: 'var(--text-main)' }}>Task #{id} Detail Placeholder</h3>
-        <p style={{ marginTop: '0.5rem' }}>
-          This route dynamically extracts the URL parameter <code>id={id}</code> using React Router's <code>useParams()</code> hook.
-        </p>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-          Task state fetching and complete detail view will be populated in subsequent phases.
-        </p>
+        <div className="detail-row">
+          <span className="detail-label">Task ID:</span>
+          <span className="detail-value"><code>{task.id}</code></span>
+        </div>
+
+        <div className="detail-row">
+          <span className="detail-label">Description:</span>
+          <span className="detail-value" style={{ color: 'var(--text-muted)' }}>
+            This task is currently stored in local application state. Full API persistence and notes will be connected in Phase 4.
+          </span>
+        </div>
+      </div>
+
+      <div className="detail-footer" style={{ marginTop: '2rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+        <Link to="/" className="btn btn-primary">
+          ← Return to Task Board
+        </Link>
       </div>
     </div>
   );
