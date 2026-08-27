@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import TaskBoardPage from './pages/TaskBoardPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
+import { loadTasks, saveTasks } from './services/taskStorage';
 import './App.css';
 
 const API_URL = 'https://jsonplaceholder.typicode.com/todos?_limit=10';
@@ -11,15 +12,18 @@ const API_URL = 'https://jsonplaceholder.typicode.com/todos?_limit=10';
 /**
  * App Component
  * Serves as the single source of truth for task data.
- * Fetches seed tasks from JSONPlaceholder API on mount,
- * manages loading & error state, and handles local CRUD updates.
+ * Priority Strategy (Phase 6):
+ * 1. Checks localStorage for existing user task data.
+ * 2. If no valid saved data exists, fetches seed tasks from JSONPlaceholder API and persists them.
+ * 3. Keeps local React state synchronized with localStorage on user modifications (Add/Edit/Delete/Toggle).
  */
 function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Fetch initial tasks from JSONPlaceholder API
+  // Fetch initial seed tasks from JSONPlaceholder API
   const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -38,6 +42,7 @@ function App() {
       }));
 
       setTasks(mappedTasks);
+      setIsInitialized(true);
     } catch (err) {
       setError(err.message || 'An error occurred while connecting to the tasks API.');
     } finally {
@@ -45,12 +50,26 @@ function App() {
     }
   }, []);
 
-  // Fetch seed tasks on initial component mount
+  // Initial load strategy: load from localStorage if valid; otherwise fetch from API
   useEffect(() => {
-    fetchTasks();
+    const savedTasks = loadTasks();
+    if (savedTasks !== null) {
+      setTasks(savedTasks);
+      setLoading(false);
+      setIsInitialized(true);
+    } else {
+      fetchTasks();
+    }
   }, [fetchTasks]);
 
-  // Core task state handlers (local updates post-API load)
+  // Sync local React state changes to localStorage after initialization
+  useEffect(() => {
+    if (isInitialized) {
+      saveTasks(tasks);
+    }
+  }, [tasks, isInitialized]);
+
+  // Core task state handlers (local updates post-initialization)
   const handleAddTask = (title) => {
     const newTask = {
       id: Date.now(),
@@ -115,7 +134,7 @@ function App() {
           </Routes>
         </main>
         <footer className="footer">
-          <p>Task Board Internship Assignment — Phase 5</p>
+          <p>Task Board Internship Assignment — Phase 6</p>
         </footer>
       </div>
     </Router>
