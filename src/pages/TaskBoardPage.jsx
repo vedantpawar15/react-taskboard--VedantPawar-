@@ -5,10 +5,19 @@ import TaskList from '../components/TaskList';
 
 /**
  * TaskBoardPage Component (Route: /)
- * Receives shared tasks state and handlers from parent Router layout,
+ * Receives shared tasks state, loading, error, and handlers from parent App,
  * manages local edit selection state, and composes board components.
  */
-function TaskBoardPage({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateTask }) {
+function TaskBoardPage({
+  tasks,
+  loading,
+  error,
+  onRetry,
+  onAddTask,
+  onToggleTask,
+  onDeleteTask,
+  onUpdateTask,
+}) {
   const [editingTask, setEditingTask] = useState(null);
 
   // Calculate statistics from current tasks state
@@ -47,12 +56,28 @@ function TaskBoardPage({ tasks, onAddTask, onToggleTask, onDeleteTask, onUpdateT
 
       <div className="board-section">
         <h2 className="section-title">All Tasks</h2>
-        <TaskList
-          tasks={tasks}
-          onToggleTask={onToggleTask}
-          onEditTask={handleStartEdit}
-          onDeleteTask={onDeleteTask}
-        />
+        {loading ? (
+          <div className="loading-container">
+            <div className="spinner"></div>
+            <p>Loading tasks from API...</p>
+          </div>
+        ) : error ? (
+          <div className="error-container">
+            <div className="error-icon">⚠️</div>
+            <h3>Failed to load tasks</h3>
+            <p>{error}</p>
+            <button className="btn btn-primary" onClick={onRetry}>
+              🔄 Retry Fetching Tasks
+            </button>
+          </div>
+        ) : (
+          <TaskList
+            tasks={tasks}
+            onToggleTask={onToggleTask}
+            onEditTask={handleStartEdit}
+            onDeleteTask={onDeleteTask}
+          />
+        )}
       </div>
     </div>
   );

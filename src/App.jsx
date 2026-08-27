@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import TaskBoardPage from './pages/TaskBoardPage';
@@ -6,24 +6,51 @@ import TaskDetailPage from './pages/TaskDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
 import './App.css';
 
-// Initial sample task data
-const INITIAL_SAMPLE_TASKS = [
-  { id: 1, title: 'Set up Vite + React project foundation', completed: true },
-  { id: 2, title: 'Configure React Router dynamic routes', completed: true },
-  { id: 3, title: 'Build reusable component architecture', completed: false },
-  { id: 4, title: 'Fetch seed tasks from JSONPlaceholder API', completed: false },
-  { id: 5, title: 'Persist task state using localStorage', completed: false },
-];
+const API_URL = 'https://jsonplaceholder.typicode.com/todos?_limit=10';
 
 /**
  * App Component
- * Holds top-level task state so routes (TaskBoardPage & TaskDetailPage)
- * share the same single source of truth without duplicating data.
+ * Serves as the single source of truth for task data.
+ * Fetches seed tasks from JSONPlaceholder API on mount,
+ * manages loading & error state, and handles local CRUD updates.
  */
 function App() {
-  const [tasks, setTasks] = useState(INITIAL_SAMPLE_TASKS);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Core task state handlers
+  // Fetch initial tasks from JSONPlaceholder API
+  const fetchTasks = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tasks (HTTP status: ${response.status})`);
+      }
+      const data = await response.json();
+
+      // Map API object schema to application task schema
+      const mappedTasks = data.map((item) => ({
+        id: item.id,
+        title: item.title,
+        completed: Boolean(item.completed),
+      }));
+
+      setTasks(mappedTasks);
+    } catch (err) {
+      setError(err.message || 'An error occurred while connecting to the tasks API.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch seed tasks on initial component mount
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  // Core task state handlers (local updates post-API load)
   const handleAddTask = (title) => {
     const newTask = {
       id: Date.now(),
@@ -64,6 +91,9 @@ function App() {
               element={
                 <TaskBoardPage
                   tasks={tasks}
+                  loading={loading}
+                  error={error}
+                  onRetry={fetchTasks}
                   onAddTask={handleAddTask}
                   onToggleTask={handleToggleTask}
                   onDeleteTask={handleDeleteTask}
@@ -76,6 +106,7 @@ function App() {
               element={
                 <TaskDetailPage
                   tasks={tasks}
+                  loading={loading}
                   onToggleTask={handleToggleTask}
                 />
               }
@@ -84,7 +115,7 @@ function App() {
           </Routes>
         </main>
         <footer className="footer">
-          <p>Task Board Internship Assignment — Phase 3</p>
+          <p>Task Board Internship Assignment — Phase 5</p>
         </footer>
       </div>
     </Router>

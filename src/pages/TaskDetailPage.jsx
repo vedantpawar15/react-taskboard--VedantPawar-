@@ -4,14 +4,25 @@ import { useParams, Link } from 'react-router-dom';
 /**
  * TaskDetailPage Component (Route: /tasks/:id)
  * Dynamically retrieves dynamic route param `id`, finds matching task from shared `tasks` state,
- * and displays comprehensive task details or a friendly "Task Not Found" fallback.
+ * and displays comprehensive task details or a friendly loading/fallback state.
  * 
  * @param {Object} props
  * @param {Array} props.tasks - Shared tasks array from parent App
+ * @param {boolean} [props.loading] - Loading state flag
  * @param {Function} [props.onToggleTask] - Optional toggle handler
  */
-function TaskDetailPage({ tasks, onToggleTask }) {
+function TaskDetailPage({ tasks, loading, onToggleTask }) {
   const { id } = useParams();
+
+  // Show loading indicator while initial API fetch is in progress
+  if (loading) {
+    return (
+      <div className="page-card loading-container">
+        <div className="spinner"></div>
+        <p>Loading task details...</p>
+      </div>
+    );
+  }
 
   // Find task matching the route parameter
   const task = tasks.find((t) => String(t.id) === String(id));
@@ -71,9 +82,9 @@ function TaskDetailPage({ tasks, onToggleTask }) {
         </div>
 
         <div className="detail-row">
-          <span className="detail-label">Description:</span>
+          <span className="detail-label">Source:</span>
           <span className="detail-value" style={{ color: 'var(--text-muted)' }}>
-            This task is currently stored in local application state. Full API persistence and notes will be connected in Phase 4.
+            Fetched from JSONPlaceholder API & managed in local state.
           </span>
         </div>
       </div>
