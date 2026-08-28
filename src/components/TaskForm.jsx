@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { IconEdit, IconPlus, IconAlert } from './Icons';
 
 /**
- * TaskForm Component
- * Supports two operational modes:
- * 1. ADD MODE: Empty input, "+ Add Task" submit button.
- * 2. EDIT MODE: Input populated with taskToEdit title, "Update Task" submit button, and "Cancel" button.
- * 
- * Features Phase 4 Form Validation:
- * - Required title validation
- * - Minimum 3 characters validation (after trimming)
- * - Clear inline error messages and visual feedback
- * - Automatic error clearing on input change, cancel, or edit target switch
+ * TaskForm Component (Google Keep-Inspired Composer)
+ * Compact collapsed input bar that expands smoothly on focus or when editing tasks.
+ * Preserves Phase 4 Form Validation & Error Handling.
  * 
  * @param {Object} props
  * @param {Object|null} [props.taskToEdit] - Task currently being edited (or null)
@@ -21,13 +15,16 @@ import React, { useState, useEffect } from 'react';
 function TaskForm({ taskToEdit, onAddTask, onUpdateTask, onCancelEdit }) {
   const [title, setTitle] = useState('');
   const [error, setError] = useState('');
+  const [isExpanded, setIsExpanded] = useState(false);
 
   // Sync form input and clear validation error when taskToEdit changes
   useEffect(() => {
     if (taskToEdit) {
       setTitle(taskToEdit.title);
+      setIsExpanded(true);
     } else {
       setTitle('');
+      setIsExpanded(false);
     }
     setError('');
   }, [taskToEdit]);
@@ -64,11 +61,16 @@ function TaskForm({ taskToEdit, onAddTask, onUpdateTask, onCancelEdit }) {
     }
 
     setTitle('');
+    if (!taskToEdit) {
+      setIsExpanded(false);
+    }
   };
 
   // Handle cancel button click
   const handleCancel = () => {
     setError('');
+    setTitle('');
+    setIsExpanded(false);
     if (onCancelEdit) {
       onCancelEdit();
     }
@@ -77,51 +79,69 @@ function TaskForm({ taskToEdit, onAddTask, onUpdateTask, onCancelEdit }) {
   const isEditing = Boolean(taskToEdit);
 
   return (
-    <form className={`task-form ${isEditing ? 'editing-mode' : ''}`} onSubmit={handleSubmit}>
+    <div className={`keep-composer-wrapper ${isEditing ? 'editing-mode' : ''}`}>
       {isEditing && (
         <div className="edit-banner">
-          <span>✏️ Editing Task #{taskToEdit.id}</span>
+          <IconEdit size={16} />
+          <span>Editing Task #{taskToEdit.id}</span>
         </div>
       )}
 
-      <div className="form-group">
-        <label htmlFor="task-title" className="form-label">
-          {isEditing ? 'Edit Task Title' : 'Task Title'}
-        </label>
-        <div className="input-group">
+      <form
+        className={`keep-composer ${isExpanded || isEditing ? 'expanded' : ''}`}
+        onSubmit={handleSubmit}
+      >
+        <div className="composer-input-row">
           <input
             id="task-title"
             type="text"
-            className={`form-input ${error ? 'input-error' : ''}`}
-            placeholder={isEditing ? 'Update task title...' : 'What needs to be done?'}
+            className={`composer-input ${error ? 'input-error' : ''}`}
+            placeholder={isEditing ? 'Update task title...' : 'Take a note / Add a task...'}
             value={title}
             onChange={handleTitleChange}
+            onFocus={() => setIsExpanded(true)}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? 'task-title-error' : undefined}
+            aria-label={isEditing ? 'Edit Task Title' : 'Take a note or add a task'}
           />
 
-          <button type="submit" className="btn btn-primary">
-            {isEditing ? 'Update Task' : '+ Add Task'}
-          </button>
-
-          {isEditing && (
+          {(!isExpanded && !isEditing) && (
             <button
               type="button"
-              className="btn btn-secondary"
-              onClick={handleCancel}
+              className="composer-quick-btn"
+              onClick={() => setIsExpanded(true)}
+              aria-label="Expand task composer"
+              title="Add task"
             >
-              Cancel
+              <IconPlus size={18} />
             </button>
           )}
         </div>
 
-        {error && (
-          <p id="task-title-error" className="error-message" role="alert">
-            <span className="error-icon" aria-hidden="true">⚠️</span> {error}
-          </p>
+        {(isExpanded || isEditing) && (
+          <div className="composer-actions">
+            {error && (
+              <p id="task-title-error" className="error-message" role="alert">
+                <IconAlert size={16} className="error-icon" /> {error}
+              </p>
+            )}
+
+            <div className="composer-buttons">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleCancel}
+              >
+                Close
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                {isEditing ? 'Update Task' : '+ Add Task'}
+              </button>
+            </div>
+          </div>
         )}
-      </div>
-    </form>
+      </form>
+    </div>
   );
 }
 

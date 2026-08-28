@@ -2,26 +2,51 @@ import React, { useState } from 'react';
 import TaskBoardHeader from '../components/TaskBoardHeader';
 import TaskForm from '../components/TaskForm';
 import TaskList from '../components/TaskList';
+import { IconAlert, IconRefresh } from '../components/Icons';
 
 /**
  * TaskBoardPage Component (Route: /)
- * Receives shared tasks state, loading, error, and handlers from parent App,
- * manages local edit selection state, search query, filter mode,
- * derives visibleTasks without mutating parent state, and composes board components.
+ * Receives shared tasks state, loading, error, search query, active filter, viewMode, and handlers,
+ * manages local edit selection state, derives visibleTasks without mutating parent state,
+ * and composes Google Keep-inspired board workspace.
  */
 function TaskBoardPage({
   tasks,
   loading,
   error,
+  filter = 'all',
+  setFilter,
+  searchQuery = '',
+  setSearchQuery,
+  viewMode = 'grid',
   onRetry,
   onAddTask,
   onToggleTask,
   onDeleteTask,
   onUpdateTask,
+  onReorderTasks,
 }) {
   const [editingTask, setEditingTask] = useState(null);
-  const [filter, setFilter] = useState('all'); // 'all' | 'pending' | 'completed'
-  const [searchQuery, setSearchQuery] = useState('');
+
+  // Local fallback state if filter/searchQuery are not passed as controlled props
+  const [localFilter, setLocalFilter] = useState('all');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+
+  const activeFilter = setFilter ? filter : localFilter;
+  const activeSearchQuery = setSearchQuery ? searchQuery : localSearchQuery;
+
+  const handleFilterChange = (newFilter) => {
+    if (setFilter) setFilter(newFilter);
+    else setLocalFilter(newFilter);
+  };
+
+  const handleSearchChange = (newQuery) => {
+    if (setSearchQuery) setSearchQuery(newQuery);
+    else setLocalSearchQuery(newQuery);
+  };
+
+  // Reordering is allowed in the default "All" view with empty search query
+  const isReorderAllowed = activeFilter === 'all' && activeSearchQuery.trim() === '';
 
   // Calculate statistics from current tasks state
   const totalTasks = tasks.length;
@@ -29,14 +54,14 @@ function TaskBoardPage({
   const pendingTasks = totalTasks - completedTasks;
 
   // Derive visibleTasks based on active filter & search query
-  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const normalizedQuery = activeSearchQuery.trim().toLowerCase();
 
   const visibleTasks = tasks.filter((task) => {
     // 1. Filter matching
     const matchesFilter =
-      filter === 'all'
+      activeFilter === 'all'
         ? true
-        : filter === 'completed'
+        : activeFilter === 'completed'
         ? task.completed
         : !task.completed;
 
@@ -65,12 +90,12 @@ function TaskBoardPage({
 
   // Reset search and filter options back to default
   const handleResetFilters = () => {
-    setFilter('all');
-    setSearchQuery('');
+    handleFilterChange('all');
+    handleSearchChange('');
   };
 
   return (
-    <div className="task-board-container">
+    <div className="task-board-container keep-workspace">
       <TaskBoardHeader
         totalTasks={totalTasks}
         completedTasks={completedTasks}
@@ -85,58 +110,38 @@ function TaskBoardPage({
       />
 
       <div className="board-section">
-        <div className="board-section-header">
-          <h2 className="section-title">All Tasks</h2>
-        </div>
-
-        {/* Phase 7 Search and Filter Toolbar */}
+        {/* Compact Filter Toolbar Pills */}
         {!loading && !error && (
-          <div className="task-controls">
-            <div className="search-box">
-              <span className="search-icon" aria-hidden="true">🔍</span>
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search tasks by title..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search tasks by title"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  className="clear-search-btn"
-                  onClick={() => setSearchQuery('')}
-                  aria-label="Clear search input"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
+          <div className="task-controls keep-controls">
             <div className="filter-group" role="group" aria-label="Filter tasks">
               <button
                 type="button"
-                className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-                onClick={() => setFilter('all')}
+                className={`filter-btn ${activeFilter === 'all' ? 'active' : ''}`}
+                onClick={() => handleFilterChange('all')}
               >
                 All ({totalTasks})
               </button>
               <button
                 type="button"
-                className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
-                onClick={() => setFilter('pending')}
+                className={`filter-btn ${activeFilter === 'pending' ? 'active' : ''}`}
+                onClick={() => handleFilterChange('pending')}
               >
                 Pending ({pendingTasks})
               </button>
               <button
                 type="button"
-                className={`filter-btn ${filter === 'completed' ? 'active' : ''}`}
-                onClick={() => setFilter('completed')}
+                className={`filter-btn ${activeFilter === 'completed' ? 'active' : ''}`}
+                onClick={() => handleFilterChange('completed')}
               >
                 Completed ({completedTasks})
               </button>
             </div>
+          </div>
+        )}
+
+        {!isReorderAllowed && !loading && !error && visibleTasks.length > 1 && (
+          <div className="reorder-info-banner">
+            <span>ℹ️ Drag-and-drop reordering is enabled in the default "All" view with search cleared.</span>
           </div>
         )}
 
@@ -147,19 +152,25 @@ function TaskBoardPage({
           </div>
         ) : error ? (
           <div className="error-container">
-            <div className="error-icon">⚠️</div>
+            <div className="error-icon-wrapper">
+              <IconAlert size={36} className="error-icon-svg" />
+            </div>
             <h3>Failed to load tasks</h3>
             <p>{error}</p>
             <button className="btn btn-primary" onClick={onRetry}>
-              🔄 Retry Fetching Tasks
+              <IconRefresh size={16} />
+              <span>Retry Fetching Tasks</span>
             </button>
           </div>
         ) : (
           <TaskList
             tasks={visibleTasks}
             totalTasksCount={totalTasks}
-            filter={filter}
-            searchQuery={searchQuery}
+            filter={activeFilter}
+            searchQuery={activeSearchQuery}
+            viewMode={viewMode}
+            isReorderAllowed={isReorderAllowed}
+            onReorderTasks={onReorderTasks}
             onResetFilters={handleResetFilters}
             onToggleTask={onToggleTask}
             onEditTask={handleStartEdit}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import Sidebar from './components/Sidebar';
 import TaskBoardPage from './pages/TaskBoardPage';
 import TaskDetailPage from './pages/TaskDetailPage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -8,20 +9,66 @@ import { loadTasks, saveTasks } from './services/taskStorage';
 import './App.css';
 
 const API_URL = 'https://jsonplaceholder.typicode.com/todos?_limit=10';
+const THEME_KEY = 'react_taskboard_theme';
 
 /**
  * App Component
- * Serves as the single source of truth for task data.
- * Priority Strategy (Phase 6):
- * 1. Checks localStorage for existing user task data.
- * 2. If no valid saved data exists, fetches seed tasks from JSONPlaceholder API and persists them.
- * 3. Keeps local React state synchronized with localStorage on user modifications (Add/Edit/Delete/Toggle).
+ * Serves as the single source of truth for task data, theme mode, and Google Keep layout state.
+ * Features:
+ * - LocalStorage task data persistence & initial API seed loading strategy
+ * - Dark/Light theme mode persistence & document attribute synchronization
+ * - Collapsible sidebar & header search state management
+ * - Task reordering handler with automatic storage sync
  */
 function App() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+
+  // Layout & Navigation State
+  const [filter, setFilter] = useState('all'); // 'all' | 'pending' | 'completed'
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list'
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Theme state initialization from localStorage or system preference (defaults to dark for Keep aesthetic)
+  const [theme, setTheme] = useState(() => {
+    try {
+      const savedTheme = localStorage.getItem(THEME_KEY);
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        return savedTheme;
+      }
+      return 'dark'; // Dark mode default as requested
+    } catch (e) {
+      return 'dark';
+    }
+  });
+
+  // Synchronize active theme attribute on document root & save preference
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    try {
+      localStorage.setItem(THEME_KEY, theme);
+    } catch (e) {
+      // Ignore storage write errors
+    }
+  }, [theme]);
+
+  // Toggle active theme mode
+  const handleToggleTheme = () => {
+    setTheme((prevTheme) => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  // Toggle view mode
+  const handleToggleViewMode = () => {
+    setViewMode((prevMode) => (prevMode === 'grid' ? 'list' : 'grid'));
+  };
+
+  // Toggle sidebar collapsed state
+  const handleToggleSidebar = () => {
+    setIsSidebarCollapsed((prev) => !prev);
+  };
 
   // Fetch initial seed tasks from JSONPlaceholder API
   const fetchTasks = useCallback(async () => {
@@ -99,43 +146,83 @@ function App() {
     );
   };
 
+  // Reorder task items array position
+  const handleReorderTasks = (startIndex, endIndex) => {
+    setTasks((prevTasks) => {
+      const updated = [...prevTasks];
+      const [moved] = updated.splice(startIndex, 1);
+      updated.splice(endIndex, 0, moved);
+      return updated;
+    });
+  };
+
+  // Statistics calculation for sidebar counters
+  const totalTasksCount = tasks.length;
+  const completedTasksCount = tasks.filter((t) => t.completed).length;
+  const pendingTasksCount = totalTasksCount - completedTasksCount;
+
   return (
     <Router>
-      <div className="app-container">
-        <Navbar />
-        <main className="main-content">
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <TaskBoardPage
-                  tasks={tasks}
-                  loading={loading}
-                  error={error}
-                  onRetry={fetchTasks}
-                  onAddTask={handleAddTask}
-                  onToggleTask={handleToggleTask}
-                  onDeleteTask={handleDeleteTask}
-                  onUpdateTask={handleUpdateTask}
-                />
-              }
-            />
-            <Route
-              path="/tasks/:id"
-              element={
-                <TaskDetailPage
-                  tasks={tasks}
-                  loading={loading}
-                  onToggleTask={handleToggleTask}
-                />
-              }
-            />
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </main>
-        <footer className="footer">
-          <p>Task Board Internship Assignment — Phase 6</p>
-        </footer>
+      <div className="app-container keep-app">
+        <Navbar
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onToggleSidebar={handleToggleSidebar}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          viewMode={viewMode}
+          onToggleViewMode={handleToggleViewMode}
+        />
+
+        <div className="keep-app-body">
+          <Sidebar
+            activeFilter={filter}
+            onSelectFilter={setFilter}
+            totalCount={totalTasksCount}
+            pendingCount={pendingTasksCount}
+            completedCount={completedTasksCount}
+            isCollapsed={isSidebarCollapsed}
+          />
+
+          <main className="main-content keep-main-content">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  <TaskBoardPage
+                    tasks={tasks}
+                    loading={loading}
+                    error={error}
+                    filter={filter}
+                    setFilter={setFilter}
+                    searchQuery={searchQuery}
+                    setSearchQuery={setSearchQuery}
+                    viewMode={viewMode}
+                    onRetry={fetchTasks}
+                    onAddTask={handleAddTask}
+                    onToggleTask={handleToggleTask}
+                    onDeleteTask={handleDeleteTask}
+                    onUpdateTask={handleUpdateTask}
+                    onReorderTasks={handleReorderTasks}
+                  />
+                }
+              />
+              <Route
+                path="/tasks/:id"
+                element={
+                  <TaskDetailPage
+                    tasks={tasks}
+                    loading={loading}
+                    onToggleTask={handleToggleTask}
+                    onUpdateTask={handleUpdateTask}
+                    onDeleteTask={handleDeleteTask}
+                  />
+                }
+              />
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </Router>
   );

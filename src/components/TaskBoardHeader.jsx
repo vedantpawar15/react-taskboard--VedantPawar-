@@ -1,8 +1,9 @@
 import React from 'react';
+import { IconNotes, IconPending, IconCompleted } from './Icons';
 
 /**
  * TaskBoardHeader Component
- * Renders the board title, description, and dynamic task summary counters.
+ * Renders compact board header title, description, and Google Keep-style summary chips.
  * 
  * @param {Object} props
  * @param {number} props.totalTasks - Total count of tasks
@@ -11,27 +12,27 @@ import React from 'react';
  */
 function TaskBoardHeader({ totalTasks, completedTasks, pendingTasks }) {
   return (
-    <div className="task-board-header">
+    <div className="keep-board-header">
       <div className="header-text">
-        <h1 className="page-title">Task Board</h1>
-        <p className="page-subtitle">
-          Manage, track, and organize your daily internship assignments.
+        <h1 className="keep-page-title">Task Board</h1>
+        <p className="keep-page-subtitle">
+          Organize your daily assignments and track progress
         </p>
       </div>
 
-      <div className="stats-container">
-        <div className="stat-card">
-          <span className="stat-value">{totalTasks}</span>
-          <span className="stat-label">Total Tasks</span>
-        </div>
-        <div className="stat-card stat-completed">
-          <span className="stat-value">{completedTasks}</span>
-          <span className="stat-label">Completed</span>
-        </div>
-        <div className="stat-card stat-pending">
-          <span className="stat-value">{pendingTasks}</span>
-          <span className="stat-label">Pending</span>
-        </div>
+      <div className="stats-chips">
+        <span className="stat-chip stat-total" title="Total Tasks">
+          <IconNotes size={14} className="chip-icon" />
+          <span>{totalTasks} {totalTasks === 1 ? 'Task' : 'Tasks'}</span>
+        </span>
+        <span className="stat-chip stat-pending" title="Pending Tasks">
+          <IconPending size={14} className="chip-icon" />
+          <span>{pendingTasks} Pending</span>
+        </span>
+        <span className="stat-chip stat-completed" title="Completed Tasks">
+          <IconCompleted size={14} className="chip-icon" />
+          <span>{completedTasks} Completed</span>
+        </span>
       </div>
     </div>
   );
